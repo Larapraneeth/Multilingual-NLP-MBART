@@ -1,20 +1,25 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from transformers import MBart50TokenizerFast, MBartForConditionalGeneration
+import torch
+import speech_recognition as sr
+import uuid, os
 
 app = Flask(__name__)
 
-# ---------------- MODEL LOADING ---------------- #
-# Load model once, outside the reloader
-print("Loading mBART-50 model... This may take some time.")
+# Load model
+print("Loading mBART-50...")
 model_name = "facebook/mbart-large-50-many-to-many-mmt"
 
 tokenizer = MBart50TokenizerFast.from_pretrained(model_name)
 model = MBartForConditionalGeneration.from_pretrained(model_name)
 
-print("Model loaded successfully!")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+model.eval()
+
+print("mBART50 Loaded Successfully!")
 
 
-# -------------- SUPPORTED LANGUAGES ------------- #
 LANGUAGES = {
     "English": "en_XX",
     "Hindi": "hi_IN",
@@ -25,41 +30,70 @@ LANGUAGES = {
     "German": "de_DE",
     "Italian": "it_IT",
     "Chinese": "zh_CN",
-    "Japanese": "ja_XX",
+    "Japanese": "ja_XX"
 }
 
 
-# ---------------- TRANSLATION LOGIC -------------- #
+# Translation Function
 def translate_text(text, src, tgt):
     tokenizer.src_lang = src
+    encoded = tokenizer(text, return_tensors="pt").to(device)
 
-    encoded = tokenizer(text, return_tensors="pt")
-
-    generated_tokens = model.generate(
+    output = model.generate(
         **encoded,
         forced_bos_token_id=tokenizer.lang_code_to_id[tgt]
     )
 
-    return tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
+    return tokenizer.decode(output[0], skip_special_tokens=True)
 
 
-# ---------------------- ROUTES ---------------------- #
+
+# Home Route
 @app.route("/", methods=["GET", "POST"])
 def index():
     translation = ""
 
     if request.method == "POST":
-        text = request.form.get("text", "")
-        src_lang = request.form.get("src_lang")
-        tgt_lang = request.form.get("tgt_lang")
+        text = request.form.get("text")
+        src = request.form.get("src_lang")
+        tgt = request.form.get("tgt_lang")
 
         if text.strip():
-            translation = translate_text(text, src_lang, tgt_lang)
+            translation = translate_text(text, src, tgt)
 
     return render_template("index.html", languages=LANGUAGES, translation=translation)
 
 
-# -------------------- RUN SERVER -------------------- #
+
+# Speech-to-Text Route
+@app.route("/speech_to_text", methods=["POST"])
+def speech_to_text():
+    if "audio" not in request.files:
+        return jsonify({"error": "No audio"}), 400
+
+    audio_file = request.files["audio"]
+
+    # Save WAV
+    filename = f"{uuid.uuid4()}.wav"
+    path = f"temp_{filename}"
+    audio_file.save(path)
+
+    recog = sr.Recognizer()
+
+    try:
+        with sr.AudioFile(path) as src:
+            audio = recog.record(src)
+            text = recog.recognize_google(audio)
+
+    except Exception as e:
+        text = f"(Error: {e})"
+
+    if os.path.exists(path):
+        os.remove(path)
+
+    return jsonify({"text": text})
+
+
+
 if __name__ == "__main__":
-    # Turn OFF debug for heavy model apps (prevents reloading twice)
     app.run(debug=False, port=5001)

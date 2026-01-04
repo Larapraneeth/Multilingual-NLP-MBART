@@ -1,106 +1,246 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Multilingual Machine Translation</title>
+<meta charset="UTF-8">
+<title>🌐 Multilingual Translator (mBART50)</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f2f2f2;
-            padding: 40px;
-        }
+<style>
+/* ----------- GLOBAL PAGE BACKGROUND ----------- */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Arial;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-        .container {
-            width: 600px;
-            margin: auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-        }
+/* ----------- GLASS CONTAINER ----------- */
+.container {
+    width: 750px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 35px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.25);
+    animation: fadeIn 0.8s ease-out;
+}
 
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+/* Fade Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-        textarea {
-            width: 100%;
-            height: 120px;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #bbb;
-            border-radius: 8px;
-            font-size: 15px;
-        }
+/* ----------- HEADING ----------- */
+h2 {
+    font-size: 28px;
+    color: #fff;
+    text-align: center;
+    letter-spacing: 1px;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
 
-        select, button {
-            padding: 10px;
-            width: 48%;
-            margin-bottom: 20px;
-            font-size: 15px;
-        }
+/* ----------- TEXT AREA ----------- */
+textarea {
+    width: 100%;
+    height: 160px;
+    padding: 15px;
+    border-radius: 14px;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    resize: none;
+    background: rgba(255,255,255,0.85);
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.1);
+}
 
-        button {
-            width: 100%;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
+/* ----------- MIC BUTTON ----------- */
+.mic-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(90deg, #ff0844, #ff3b3b);
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-size: 19px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    font-weight: 600;
+    transition: 0.15s ease-in-out;
+}
 
-        button:hover { background: #0056b3; }
+.mic-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 12px rgba(255,60,60,0.7);
+}
 
-        .output-box {
-            padding: 15px;
-            background: #eef;
-            border-radius: 8px;
-            margin-top: 20px;
-            font-size: 16px;
-            min-height: 50px;
-        }
-    </style>
+.mic-btn.recording {
+    background: #b30000;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 5px rgba(255,20,20,0.7); }
+    50% { box-shadow: 0 0 20px rgba(255,20,20,1); }
+    100% { box-shadow: 0 0 5px rgba(255,20,20,0.7); }
+}
+
+/* ----------- DROPDOWN ROW ----------- */
+.lang-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.lang-card {
+    flex: 1;
+    margin-right: 15px;
+}
+
+.lang-card:last-child {
+    margin-right: 0;
+}
+
+select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(255,255,255,0.9);
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* ----------- TRANSLATE BUTTON ----------- */
+.translate-btn {
+    width: 100%;
+    margin-top: 30px;
+    padding: 16px;
+    background: linear-gradient(90deg, #005bea, #00c6fb);
+    border: none;
+    border-radius: 14px;
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s ease-in-out;
+}
+
+.translate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(0,150,255,0.8);
+}
+
+/* ----------- OUTPUT BOX ----------- */
+.output-box {
+    margin-top: 25px;
+    padding: 15px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 12px;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.1);
+    font-size: 17px;
+    font-weight: 500;
+}
+</style>
 </head>
 
 <body>
 
 <div class="container">
-    <h2>🌍 Multilingual Machine Translation (mBART-50)</h2>
 
-    <form method="POST">
+<h2>🌐 MULTILINGUAL MACHINE TRANSLATION (mBART50)</h2>
 
-        <label>Enter text:</label>
-        <textarea name="text" placeholder="Type text here..."></textarea>
+<!-- Mic button -->
+<button id="recordBtn" class="mic-btn">🎤 Speak</button>
 
-        <br>
+<!-- Input box -->
+<form method="POST">
+    <textarea id="textArea" name="text" placeholder="🎤 Speak or type text here..."></textarea>
 
-        <label>From:</label>
-        <select name="src_lang">
-            {% for name, code in languages.items() %}
-            <option value="{{ code }}">{{ name }}</option>
-            {% endfor %}
-        </select>
+    <div class="lang-row">
+        <div class="lang-card">
+            <label style="color:white;font-weight:bold;">From:</label><br>
+            <select name="src_lang">
+                {% for name, code in languages.items() %}
+                <option value="{{code}}">{{name}}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-        <label>To:</label>
-        <select name="tgt_lang">
-            {% for name, code in languages.items() %}
-            <option value="{{ code }}">{{ name }}</option>
-            {% endfor %}
-        </select>
-
-        <button type="submit">Translate</button>
-    </form>
-
-    {% if translation %}
-    <h3>Translated Output:</h3>
-    <div class="output-box">
-        {{ translation }}
+        <div class="lang-card">
+            <label style="color:white;font-weight:bold;">To:</label><br>
+            <select name="tgt_lang">
+                {% for name, code in languages.items() %}
+                <option value="{{code}}">{{name}}</option>
+                {% endfor %}
+            </select>
+        </div>
     </div>
-    {% endif %}
+
+    <button type="submit" class="translate-btn">Translate 🔄</button>
+</form>
+
+{% if translation %}
+<h3 style="color:white;margin-top:25px;">Translated Output:</h3>
+<div class="output-box">{{translation}}</div>
+{% endif %}
 
 </div>
+
+<!-- Recorder.js -->
+<script src="/static/recorder.js"></script>
+
+<script>
+/* === SAME WORKING SPEECH JS === */
+let recorder, audioCtx, stream;
+
+document.getElementById("recordBtn").onclick = async () => {
+    if (!recorder) startRecording();
+    else stopRecording();
+};
+
+async function startRecording() {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let input = audioCtx.createMediaStreamSource(stream);
+
+    recorder = new Recorder(input, { numChannels: 1 });
+    recorder.record();
+
+    let btn = document.getElementById("recordBtn");
+    btn.innerText = "🟥 Recording... Click to Stop";
+    btn.classList.add("recording");
+}
+
+function stopRecording() {
+    recorder.stop();
+    stream.getTracks()[0].stop();
+
+    recorder.exportWAV(async function(blob) {
+        let fd = new FormData();
+        fd.append("audio", blob);
+
+        let res = await fetch("/speech_to_text", {
+            method: "POST",
+            body: fd
+        });
+
+        let data = await res.json();
+        document.getElementById("textArea").value = data.text;
+    });
+
+    let btn = document.getElementById("recordBtn");
+    btn.innerText = "🎤 Speak";
+    btn.classList.remove("recording");
+
+    recorder = null;
+}
+</script>
 
 </body>
 </html>
